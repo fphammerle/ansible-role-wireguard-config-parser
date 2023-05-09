@@ -1,0 +1,17 @@
+- name: 'read {{ wireguard_config_path }}'
+  slurp: {src: '{{ wireguard_config_path }}'}
+  register: _config_base64
+- name: prepare variables
+  set_fact: {wireguard_config_interface: null, wireguard_config_peers: []}
+- name: 'parse sections in {{ wireguard_config_path }}'
+  # potential alternative:
+  # > configparser.ConfigParser(
+  # >   dict_type=?, delimiters="=", comment_prefixes="#",
+  # >   strict=False, interpolation=None,
+  # > )
+  ansible.builtin.include_tasks: parse-section.yml
+  loop_control: {loop_var: section_raw}
+  loop: >-
+    {{ _config_base64.content | b64decode
+       | regex_findall('^\[(?s).*?(?=^\[|\Z)', multiline=True) }}
+  no_log: true

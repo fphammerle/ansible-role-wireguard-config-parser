@@ -1,0 +1,23 @@
+- name: parse section's name & prepare variable for fields
+  set_fact:
+    _section_name: "{{ section_raw[1:].split(']', maxsplit=1)[0] }}"
+    _fields: {}
+- name: parse section's fields
+  set_fact:
+    _fields: "{{ _fields | combine(dict([item.split(' = ', maxsplit=1)])) }}"
+  loop: '{{ section_raw.splitlines()[1:] }}'
+  no_log: true
+- name: verify only supported and no duplicate sections were provided
+  assert:
+    that:
+    - _section_name in ['Interface', 'Peer']
+    - _section_name != 'Interface' or not wireguard_config_interface
+    - _section_name != 'Peer'
+      or _fields['PublicKey'] not in wireguard_config_peers
+- name: assign interface config
+  set_fact: {wireguard_config_interface: '{{ _fields }}'}
+  when: _section_name == 'Interface'
+- name: add peer config
+  set_fact:
+    wireguard_config_peers: '{{ wireguard_config_peers + [_fields] }}'
+  when: _section_name == 'Peer'
