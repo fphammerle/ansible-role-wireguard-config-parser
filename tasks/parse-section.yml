@@ -5,6 +5,7 @@
 - name: parse section's fields
   set_fact:
     _fields: "{{ _fields | combine(dict([item.split(' = ', maxsplit=1)])) }}"
+  when: not item.startswith('#')
   loop: '{{ section_raw.splitlines()[1:] }}'
   no_log: true
 - name: verify only supported and no duplicate sections were provided
